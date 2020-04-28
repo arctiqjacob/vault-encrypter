@@ -17,6 +17,7 @@ var vaultAddr = os.Getenv("VAULT_ADDR")
 var transitPath = "transit/encrypt/cckey"
 var transformPath = "transform/encode/payments"
 var appRolePath = "auth/approle/login"
+var dataFilePath = "/mnt/data/numbers.data"
 
 /// Login function to log into Vault via App Role
 /// This function recieves a token from Vault and sets it to the client
@@ -33,6 +34,7 @@ func login(client *api.Client) {
 
 	// Set token for future client requests
 	client.SetToken(auth.Auth.ClientToken)
+	log.Printf("Successfully logged into Vault.")
 }
 
 // Transform reads in a plaintext creditcard with a Vault client.
@@ -76,7 +78,7 @@ func transit(creditCard string, client *api.Client) {
 /// WriteData reads in a string and writes it to a file.
 func writeData(cc string) {
 	// open data file
-	file, err := os.OpenFile("numbers.data", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(dataFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		log.Println(err)
 	}
@@ -94,7 +96,7 @@ func readData() []string {
 	var lines []string
 
 	// open data file
-	file, err := os.Open("numbers.data")
+	file, err := os.OpenFile(dataFilePath, os.O_APPEND|os.O_CREATE|os.O_RDWR, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
