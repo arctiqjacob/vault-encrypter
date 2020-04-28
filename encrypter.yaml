@@ -1,0 +1,62 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: encrypter-pv-claim
+  labels:
+    app: encrypter
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: encrypter-deployment
+  labels:
+    app: encrypter
+spec:
+  selector:
+    matchLabels:
+      app: encrypter
+  template:
+    metadata:
+      labels:
+        app: encrypter
+    spec:
+      containers:
+      - name: encrypter
+        image: jacobmammoliti/encrypter:0.0.1
+        ports:
+        - containerPort: 8080
+        env:
+        - name: VAULT_ADDR
+          value: ""
+        - name: ROLE_ID
+          value: ""
+        - name: SECRET_ID
+          valueFrom:
+            secretKeyRef:
+              name: vault-secret-id
+              key: id
+        volumeMounts:
+        - name: data
+          mountPath: /mnt/data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: encrypter-pv-claim
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: encrypter-service
+spec:
+  selector:
+    app: encrypter
+  ports:
+    - port: 8080
+      targetPort: 8080
+  type: LoadBalancer
