@@ -22,7 +22,7 @@ var dataFilePath = "/mnt/data/numbers.data"
 /// Login function to log into Vault via App Role
 /// This function recieves a token from Vault and sets it to the client
 func login(client *api.Client) {
-	log.Printf("Logging into Vault...")
+	log.Printf("Logging into Vault with role_id: %s", roleID)
 
 	auth, err := client.Logical().Write(appRolePath, map[string]interface{}{
 		"role_id":   roleID,
@@ -122,11 +122,18 @@ func landingPage(w http.ResponseWriter, r *http.Request, client *api.Client) {
 	log.Printf("%s %s %s %s", r.Proto, r.Method, r.RemoteAddr, r.URL.Path)
 
 	if r.Method == http.MethodPost {
+		// login to Vault
+		login(client)
+
 		if r.FormValue("submit") == "transform" {
 			transform(r.FormValue("cnumber"), client)
 		} else if r.FormValue("submit") == "transit" {
 			transit(r.FormValue("cnumber"), client)
 		}
+
+		log.Printf("Revoking token...")
+		client.Auth().Token().RevokeSelf("")
+
 	}
 
 	// read in all entries from data file
@@ -149,9 +156,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	// login to Vault
-	login(client)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		landingPage(w, r, client)
