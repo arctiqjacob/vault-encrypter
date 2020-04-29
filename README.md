@@ -22,8 +22,11 @@ latest: digest: sha256:xxx
 ## Build and Deploy Kubernetes Manifest
 Use the following steps to deploy the application into Kubernetes.
 ``` shell
+# Create a separate namespace
+~]$ kubectl create ns encrypter
+
 # Create PVC to persist encrypted data.
-~]$ kubectl apply -f <<EOF
+~]$ kubectl -n encrypter apply -f <<EOF
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -39,10 +42,10 @@ spec:
 EOF
 
 # Create Kubernetes secret for Vault Approle SECRET_ID
-~]$ kubectl create secret generic vault-secret-id --from-literal=id=XXX
+~]$ kubectl -n encrypter create secret generic vault-secret-id --from-literal=id=XXX
 
 # Create deployment. Be sure to update the VAULT_ADDR and ROLE_ID.
-~]$ kubectl apply -f <<EOF
+~]$ kubectl -n encrypter apply -f <<EOF
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -84,7 +87,7 @@ EOF
 
 # Create a LoadBalancer type service to expose the deployment.
 # Use ClusterIP if planning to use an Ingress Controller.
-~]$ kubectl apply -f <<EOF
+~]$ kubectl -n encrypter apply -f <<EOF
 apiVersion: v1
 kind: Service
 metadata:
@@ -97,4 +100,17 @@ spec:
       targetPort: 8080
   type: LoadBalancer
 EOF
+
+~]$ kubectl -n encrypter get all
+NAME                                        READY   STATUS    RESTARTS   AGE
+pod/encrypter-deployment-6fd9bbfbcd-f8tkz   1/1     Running   0          10m
+
+NAME                        TYPE           CLUSTER-IP       EXTERNAL-IP      PORT(S)          AGE
+service/encrypter-service   LoadBalancer   10.109.211.155   10.100.100.220   8080:30917/TCP   10m
+
+NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/encrypter-deployment   1/1     1            1           10m
+
+NAME                                              DESIRED   CURRENT   READY   AGE
+replicaset.apps/encrypter-deployment-6fd9bbfbcd   1         1         1       10m
 ```
